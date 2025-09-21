@@ -238,28 +238,26 @@ def make_title(dawn: str | None, dusk: str | None, /):
 
     Makes title for WakaReadme.
     """
-    logger.debug("Making title")
-    if not dawn or not dusk:
-        logger.error("Cannot find start/end date\n")
-        sys.exit(1)
+    # Convert time_range to human readable format
+    time_range_map = {
+        "last_7_days": "7 Days",
+        "last_30_days": "30 Days",
+        "last_6_months": "6 Months",
+        "last_year": "Year",
+        "all_time": "All Time",
+    }
 
-    msg_dfm = "%d %B %Y"
-    try:
-        start_date = parse_iso_date(dawn).strftime(msg_dfm)
-        end_date = parse_iso_date(dusk).strftime(msg_dfm)
-    except (ValueError, TypeError) as err:
-        logger.error(f"{err}\n")
-        sys.exit(1)
+    time_period = time_range_map.get(wk_i.time_range, "7 Days")
+    return f"Last {time_period} of Coding"
 
-    logger.debug("Title was made\n")
-    return f"From: {start_date} - To: {end_date}"
 
 def parse_iso_date(date_str: str) -> datetime:
     """Parse ISO date string handling various timezone formats."""
-    clean_date: str = re.sub(r'([+-]\d{2}):?(\d{2})$|Z$', '', date_str)
-    if 'T' in clean_date:
+    clean_date: str = re.sub(r"([+-]\d{2}):?(\d{2})$|Z$", "", date_str)
+    if "T" in clean_date:
         return datetime.fromisoformat(clean_date)
-    return datetime.strptime(clean_date, '%Y-%m-%d %H:%M:%S')
+    return datetime.strptime(clean_date, "%Y-%m-%d %H:%M:%S")
+
 
 def make_graph(block_style: str, percent: float, gr_len: int, lg_nm: str = "", /):
     """WakaReadme Graph.
@@ -280,45 +278,45 @@ def make_graph(block_style: str, percent: float, gr_len: int, lg_nm: str = "", /
 
 def format_time_display(time_str: str) -> str:
     """Format time strings for display optimization.
-    
+
     Processes and optimizes time strings for better readability and display.
     Handles various time formats and ensures consistent formatting.
-    
+
     Args:
         time_str: Time string from WakaTime API (e.g., '27 hrs 29 mins', '1 hr 54 mins', '35 mins')
-        
+
     Returns:
         Formatted time string optimized for display
     """
     if not time_str or time_str.strip() == "":
         return time_str
-    
+
     # Pattern to match time components: number followed by time unit
-    pattern = r'(\d+)\s*(hr|hrs|min|mins|sec|secs)'
+    pattern = r"(\d+)\s*(hr|hrs|min|mins|sec|secs)"
     matches = re.findall(pattern, time_str.lower())
-    
+
     if not matches:
         return time_str  # Return original if no time pattern found
-    
+
     total_minutes = 0
-    
+
     # Convert all time to minutes for processing
     for value, unit in matches:
         value = int(value)
-        if unit in ['hr', 'hrs']:
+        if unit in ["hr", "hrs"]:
             total_minutes += value * 60
-        elif unit in ['min', 'mins']:
+        elif unit in ["min", "mins"]:
             total_minutes += value
-        elif unit in ['sec', 'secs']:
+        elif unit in ["sec", "secs"]:
             total_minutes += value / 60  # Convert seconds to minutes
-    
+
     # Apply display optimization
     optimized_minutes = int(total_minutes * 2)
-    
+
     # Convert to hours and minutes for display
     hours = optimized_minutes // 60
     minutes = optimized_minutes % 60
-    
+
     # Format for optimal display
     result_parts: list[str] = []
     if hours > 0:
@@ -326,17 +324,17 @@ def format_time_display(time_str: str) -> str:
             result_parts.append("1 hr")
         else:
             result_parts.append(f"{hours} hrs")
-    
+
     if minutes > 0:
         if minutes == 1:
             result_parts.append("1 min")
         else:
             result_parts.append(f"{minutes} mins")
-    
+
     # Handle edge case where both hours and minutes are 0
     if not result_parts:
         return "0 mins"
-    
+
     return " ".join(result_parts)
 
 
@@ -349,7 +347,7 @@ def _extract_ignored_languages():
             temp = igl.lstrip('"').lstrip("'")
             continue
         if igl.endswith(('"', "'")):
-            igl = temp + " " + igl.rstrip('"\'')
+            igl = temp + " " + igl.rstrip("\"'")
             temp = ""
         yield igl
 
