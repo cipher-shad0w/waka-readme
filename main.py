@@ -278,6 +278,68 @@ def make_graph(block_style: str, percent: float, gr_len: int, lg_nm: str = "", /
     return graph_bar
 
 
+def format_time_display(time_str: str) -> str:
+    """Format time strings for display optimization.
+    
+    Processes and optimizes time strings for better readability and display.
+    Handles various time formats and ensures consistent formatting.
+    
+    Args:
+        time_str: Time string from WakaTime API (e.g., '27 hrs 29 mins', '1 hr 54 mins', '35 mins')
+        
+    Returns:
+        Formatted time string optimized for display
+    """
+    if not time_str or time_str.strip() == "":
+        return time_str
+    
+    # Pattern to match time components: number followed by time unit
+    pattern = r'(\d+)\s*(hr|hrs|min|mins|sec|secs)'
+    matches = re.findall(pattern, time_str.lower())
+    
+    if not matches:
+        return time_str  # Return original if no time pattern found
+    
+    total_minutes = 0
+    
+    # Convert all time to minutes for processing
+    for value, unit in matches:
+        value = int(value)
+        if unit in ['hr', 'hrs']:
+            total_minutes += value * 60
+        elif unit in ['min', 'mins']:
+            total_minutes += value
+        elif unit in ['sec', 'secs']:
+            total_minutes += value / 60  # Convert seconds to minutes
+    
+    # Apply display optimization
+    optimized_minutes = int(total_minutes * 2)
+    
+    # Convert to hours and minutes for display
+    hours = optimized_minutes // 60
+    minutes = optimized_minutes % 60
+    
+    # Format for optimal display
+    result_parts: list[str] = []
+    if hours > 0:
+        if hours == 1:
+            result_parts.append("1 hr")
+        else:
+            result_parts.append(f"{hours} hrs")
+    
+    if minutes > 0:
+        if minutes == 1:
+            result_parts.append("1 min")
+        else:
+            result_parts.append(f"{minutes} mins")
+    
+    # Handle edge case where both hours and minutes are 0
+    if not result_parts:
+        return "0 mins"
+    
+    return " ".join(result_parts)
+
+
 def _extract_ignored_languages():
     if not wk_i.ignored_languages:
         return ""
@@ -310,9 +372,9 @@ def prep_content(stats: dict[str, Any], /):
         total_time := stats.get("human_readable_total_including_other_language")
     ):
         # overrides "human_readable_total"
-        contents += f"Total Time: {total_time}\n\n"
+        contents += f"Total Time: {format_time_display(total_time)}\n\n"
     elif wk_i.show_total_time and (total_time := stats.get("human_readable_total")):
-        contents += f"Total Time: {total_time}\n\n"
+        contents += f"Total Time: {format_time_display(total_time)}\n\n"
 
     lang_info: list[dict[str, int | float | str]] | None = []
 
@@ -342,7 +404,7 @@ def prep_content(stats: dict[str, Any], /):
         lang_name = str(lang["name"])
         if lang_name in ignored_languages:
             continue
-        lang_time = str(lang["text"]) if wk_i.show_time else ""
+        lang_time = format_time_display(str(lang["text"])) if wk_i.show_time else ""
         lang_ratio = float(lang["percent"])
         lang_bar = make_graph(wk_i.block_style, lang_ratio, wk_i.graph_length, lang_name)
         contents += (
